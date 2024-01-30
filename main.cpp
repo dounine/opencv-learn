@@ -1,5 +1,6 @@
 #include <iostream>
 #include <opencv2/core.hpp>
+#include <opencv2/opencv.hpp>
 #include <opencv2/imgcodecs.hpp>
 #include <opencv2/highgui.hpp>
 #include <opencv2/imgproc.hpp>
@@ -8,11 +9,10 @@ using namespace std;
 using namespace cv;
 
 int imgMatchTemplate();
-
+int imgMatchTemplatePlus();
 int main() {
-    float result = pow(2-0.80, 4);
-    cout << result << endl;
-    imgMatchTemplate();
+//    imgMatchTemplate();
+    imgMatchTemplatePlus();
     return 0;
 }
 
@@ -24,15 +24,69 @@ vector<Mat> buildTemplates(Mat templ) {
         Mat resizeTempl;
         //放大
         float resizeLargeRetain = pow(2 - resizeRetain, i + 1);
-        resize(templ, resizeTempl, Size(0,0), resizeLargeRetain, resizeLargeRetain);
+        resize(templ, resizeTempl, Size(0, 0), resizeLargeRetain, resizeLargeRetain);
         templates.push_back(resizeTempl);
 
         //缩小
         float resizeSamllReduce = pow(resizeRetain, i + 1);
-        resize(templ, resizeTempl, Size(0,0), resizeSamllReduce, resizeSamllReduce);
+        resize(templ, resizeTempl, Size(0, 0), resizeSamllReduce, resizeSamllReduce);
         templates.push_back(resizeTempl);
     }
     return templates;
+}
+
+int imgMatchTemplatePlus() {
+    string img_path = "/Users/lake/dounine/github/apple/opencv-learn/iphone.png";
+    cv::Mat image = cv::imread(img_path);
+    cv::Mat templ = cv::imread("/Users/lake/dounine/github/apple/opencv-learn/find.png", cv::IMREAD_GRAYSCALE);
+    if (image.empty()) {
+        std::cout << "Could not read the image: " << img_path << std::endl;
+        return 1;
+    }
+    if (templ.empty()) {
+        std::cout << "Could not read the image: " << img_path << std::endl;
+        return 1;
+    }
+
+    long start = clock();
+    // 使用SIFT检测关键点各提取特征
+    Ptr<SIFT> sift = SIFT::create();
+    vector<KeyPoint> keypointsMain, keypointsTemplate;
+    Mat descriptorsMain, descriptorsTemplate;
+    sift->detectAndCompute(image, Mat(), keypointsMain, descriptorsMain);
+    sift->detectAndCompute(templ, Mat(), keypointsTemplate, descriptorsTemplate);
+
+    //使用FLANN进行特征匹配
+    FlannBasedMatcher matcher;
+    vector<DMatch> matches;
+    matcher.match(descriptorsTemplate, descriptorsMain, matches);
+
+    //绘制匹配结果
+    double minDist = 100.0;
+    vector<DMatch> goodMatches;
+    for (int i = 0; i < descriptorsTemplate.rows; i++) {
+        if (matches[i].distance < minDist) {
+            goodMatches.push_back(matches[i]);
+        }
+    }
+
+    long end = clock();
+
+    std::cout << "耗时: " << (end - start) / 1000 << "ms" << std::endl;
+
+    Mat imgMatches;
+    cv::drawMatches(templ, keypointsTemplate, image, keypointsMain, goodMatches, imgMatches);
+
+    // 绘制矩形框标记匹配位置
+//    for (size_t i = 0; i < goodMatches.size(); i++) {
+//        Point2f point = keypointsMain[goodMatches[i].trainIdx].pt;
+//        rectangle(image, point, cv::Point(point.x + templ.cols, point.y + templ.rows), cv::Scalar(0, 255, 0), 2);
+//    }
+
+    // 显示结果
+    cv::imshow("Matches", imgMatches);
+    cv::waitKey(0);
+    return 0;
 }
 
 int imgMatchTemplate() {
