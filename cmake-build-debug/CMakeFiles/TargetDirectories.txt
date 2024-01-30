@@ -1,0 +1,3 @@
+/Users/lake/dounine/github/apple/opencv-learn/cmake-build-debug/CMakeFiles/opencv_learn.dir
+/Users/lake/dounine/github/apple/opencv-learn/cmake-build-debug/CMakeFiles/edit_cache.dir
+/Users/lake/dounine/github/apple/opencv-learn/cmake-build-debug/CMakeFiles/rebuild_cache.dir
